@@ -7,7 +7,8 @@ from .views import (
 router = DefaultRouter()
 router.register(r'users', UserViewSet)
 router.register(r'issues', IssuesViewSet)
-router.register(r'conversations', ConversationsViewSet)
+router.register(r'messages', ConversationsViewSet)
+
 urlpatterns = [
     path('', include(router.urls)),
 ]
