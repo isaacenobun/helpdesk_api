@@ -33,6 +33,8 @@ def send_mail(subject, to_email, context, type):
             html_content = render_to_string('user_notification.html', context)
         elif type == "verify":
             html_content = render_to_string('user_verification.html', context)
+        elif type == "message":
+            html_content = render_to_string('message_notification.html', context)
 
         msg = EmailMessage()
         msg['Subject'] = subject
@@ -69,6 +71,8 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     http_method_names = ['get', 'post', 'put', 'patch']
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['email']
 
 class IssuesViewSet(viewsets.ModelViewSet):
     queryset = Issues.objects.all()
@@ -95,6 +99,7 @@ class IssuesViewSet(viewsets.ModelViewSet):
         # To Admin
         if send_mail(
             subject="New Issue Reported",
+            # to_email= technology.admin_email,
             to_email="isaac.enobun@crccreditbureau.net",
             context=context,
             type="admin"
@@ -121,6 +126,54 @@ class ConversationsViewSet(viewsets.ModelViewSet):
     queryset = Conversations.objects.all()
     serializer_class = ConversationsSerializer
     http_method_names = ['get', 'post', 'put', 'patch']
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['issue']
+
+    def create(self, request, *args, **kwargs):
+        message = request.data.get('message')
+        issue = Issues.objects.get(id=request.data.get('issue'))
+        sender = User.objects.get(id=request.data.get('sender'))
+
+        if sender.role == 'admin':
+
+            context = {
+                'message': message,
+                'ticket_id': 'CRC-'+str(issue.id),
+                'sender': sender.first_name + ' ' + sender.last_name,
+            }
+
+            if send_mail(
+                subject="New Message on Issue (ID: CRC-"+str(issue.id)+")",
+                # to_email=issue.reported_by.email,
+                to_email="isaac.enobun@crccreditbureau.net",
+                context=context,
+                type="message"
+            ):
+                print("Message notification sent successfully to user.")
+            else:
+                print("Failed to send message notification to user.")
+
+            return super().create(request, *args, **kwargs)
+
+        else:
+            context = {
+                'message': message,
+                'ticket_id': 'CRC-'+str(issue.id),
+                'sender': issue.reported_by.first_name + ' ' + issue.reported_by.last_name,
+            }
+
+            if send_mail(
+                subject="New Message on Issue (ID: CRC-"+str(issue.id)+")",
+                # to_email=technology.admin_email,
+                to_email="isaac.enobun@crccreditbureau.net",
+                context=context,
+                type="message"
+            ):
+                print("Message notification sent successfully to admin.")
+            else:
+                print("Failed to send message notification to admin.")
+
+            return super().create(request, *args, **kwargs)
 
 def generate_verification_code():
     """Generates a unique 5-digit code for VerificationCode."""
