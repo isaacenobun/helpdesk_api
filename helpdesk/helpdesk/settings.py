@@ -24,6 +24,10 @@ ALLOWED_HOSTS = ['*']
 
 CSRF_TRUSTED_ORIGINS = ['https://helpdesk-api-92j8.onrender.com', 'https://*.helpdesk-api-92j8.onrender.com']
 
+CORS_ALLOWED_ORIGINS = [
+    "https://crc-helpdesk.vercel.app",
+]
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -35,6 +39,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'helpdesk_api',
     'rest_framework',
+    'rest_framework_simplejwt',
+    'django_filters',
+    'corsheaders'
 ]
 
 MIDDLEWARE = [
@@ -46,6 +53,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'helpdesk.urls'
