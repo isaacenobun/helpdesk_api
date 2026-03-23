@@ -6,6 +6,11 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.response import Response
 from rest_framework import status
 
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework_simplejwt.tokens import RefreshToken
+from helpdesk.utils.microsoft import verify_microsoft_token
+
 from django.template.loader import render_to_string
 
 # SMTP
@@ -59,6 +64,52 @@ def send_mail(subject, to_email, context, type):
         except Exception as e:
             print (e)
             return False
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def microsoft_login(request):
+    id_token = request.data.get("id_token")
+    subdomain = request.data.get("subdomain")
+
+    if not id_token or not subdomain:
+        return Response({"detail": "Missing data"}, status=400)
+
+    try:
+        payload = verify_microsoft_token(id_token)
+    except Exception:
+        return Response({"detail": "Invalid token"}, status=401)
+
+    email = payload.get("preferred_username") or payload.get("email")
+
+    if not email:
+        return Response({"detail": "No email found"}, status=400)
+
+    # Extract domain
+    email_domain = email.split("@")[-1].lower()
+
+    # 🔒 Domain restriction
+    if email_domain != "crccreditbureau.net":
+        return Response(
+            {"detail": "Unauthorized email domain"},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    try:
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        return Response(
+            {"detail": "User not registered for this organization"},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    # Issue JWT
+    refresh = RefreshToken.for_user(user)
+
+    return Response({
+        "access": str(refresh.access_token),
+        "refresh": str(refresh),
+        "email": email
+    })
 
 class MyTokenObtainPairView(TokenObtainPairView):
     """
