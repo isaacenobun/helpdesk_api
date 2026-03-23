@@ -69,9 +69,8 @@ def send_mail(subject, to_email, context, type):
 @permission_classes([AllowAny])
 def microsoft_login(request):
     id_token = request.data.get("id_token")
-    subdomain = request.data.get("subdomain")
 
-    if not id_token or not subdomain:
+    if not id_token:
         return Response({"detail": "Missing data"}, status=400)
 
     try:
