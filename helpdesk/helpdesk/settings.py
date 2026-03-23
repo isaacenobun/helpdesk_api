@@ -163,3 +163,5 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=200),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=400),
 }
+
+MS_CLIENT_ID = os.getenv('MS_CLIENT_ID')
