@@ -2,7 +2,7 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import authenticate
 
-from .models import User, Issues, Conversations, VerificationCode
+from .models import User, Issues, Conversations
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 
@@ -48,9 +48,4 @@ class IssuesSerializer(serializers.ModelSerializer):
 class ConversationsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Conversations
-        fields = ['id', 'issue', 'message', 'sender', 'timestamp']
-
-class VerificationCodeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = VerificationCode
-        fields = ['id', 'used', 'user', 'code', 'created_at']
+        fields = ['id', 'issue', 'message', 'sender', 'mentioned_users', 'timestamp']

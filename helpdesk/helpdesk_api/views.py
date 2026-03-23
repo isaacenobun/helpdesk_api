@@ -18,9 +18,8 @@ load_dotenv()
 import random
 import string
 
-from .models import User, Issues, Conversations, VerificationCode
-from .serializers import MyTokenObtainPairSerializer, UserSerializer, IssuesSerializer, ConversationsSerializer, VerificationCodeSerializer
-
+from .models import User, Issues, Conversations
+from .serializers import MyTokenObtainPairSerializer, UserSerializer, IssuesSerializer, ConversationsSerializer
 def send_mail(subject, to_email, context, type):
         port = 587
         smtp_server =os.getenv('SMTP_SERVER')
@@ -31,14 +30,14 @@ def send_mail(subject, to_email, context, type):
             html_content = render_to_string('admin_notification.html', context)
         elif type == "user":
             html_content = render_to_string('user_notification.html', context)
-        elif type == "verify":
-            html_content = render_to_string('user_verification.html', context)
         elif type == "message":
             html_content = render_to_string('message_notification.html', context)
+        elif type == "status":
+            html_content = render_to_string('status_notification.html', context)
 
         msg = EmailMessage()
         msg['Subject'] = subject
-        msg['From'] = "helpdesk@creditreferencenigeria.net"
+        msg['From'] = "IThelpdesk@creditreferencenigeria.net"
         msg['To'] = [to_email]
         msg.set_content(html_content, subtype='html')
         
@@ -74,12 +73,70 @@ class UserViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['email']
 
+    def partial_update(self, request, *args, **kwargs):
+        user = self.get_object()
+        data = request.data.copy()
+        password = data.pop('password', None)
+
+        if password:
+            user.set_password(password)
+            user.save()
+
+        if data:
+            serializer = self.get_serializer(user, data=data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response({'status': 'password set'}, status=status.HTTP_200_OK)
+
 class IssuesViewSet(viewsets.ModelViewSet):
     queryset = Issues.objects.all()
     serializer_class = IssuesSerializer
     http_method_names = ['get', 'post', 'put', 'patch']
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['status', 'reported_by']
+
+    def partial_update(self, request, *args, **kwargs):
+        issue = self.get_object()
+        data = request.data.copy()
+        new_status = data.pop('status', None)
+
+        # Handle status change independently
+        if new_status is not None and new_status != issue.status:
+            issue.status = new_status
+            issue.save()
+
+            context = {
+                'ticket_id': 'CRC-'+str(issue.id),
+                'title': issue.title,
+                'description': issue.description,
+                'date': issue.created_at,
+                'status': issue.status
+            }
+
+            status_messages = {
+                'completed': ('Issue CRC-'+str(issue.id)+' Resolved', 'status'),
+                'pending': ('Issue CRC-'+str(issue.id)+' Reopened', 'status'),
+            }
+
+            if new_status in status_messages:
+                subject, mail_type = status_messages[new_status]
+                send_mail(
+                    subject=subject,
+                    to_email=issue.reported_by.email,
+                    context=context,
+                    type=mail_type
+                )
+
+        # Handle other fields separately
+        if data:
+            serializer = self.get_serializer(issue, data=data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response({'status': 'updated'}, status=status.HTTP_200_OK)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -174,45 +231,3 @@ class ConversationsViewSet(viewsets.ModelViewSet):
                 print("Failed to send message notification to admin.")
 
             return super().create(request, *args, **kwargs)
-
-def generate_verification_code():
-    """Generates a unique 5-digit code for VerificationCode."""
-    length = 5
-    characters = string.digits 
-    
-    while True:
-        code = ''.join(random.choice(characters) for _ in range(length))
-        if not VerificationCode.objects.filter(code=code).exists():
-            break
-    return code
-
-class VerificationCodeViewSet(viewsets.ModelViewSet):
-    queryset = VerificationCode.objects.all()
-    serializer_class = VerificationCodeSerializer
-    http_method_names = ['get', 'post', 'put', 'patch']
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['code']
-
-    def create(self, request, *args, **kwargs):
-        # Generate a unique verification code
-        code = generate_verification_code()
-        user = User.objects.get(id=request.data.get('user'))
-
-        context = {
-            'verification_code': code
-        }
-
-        if send_mail(
-            subject="Reset your Helpdesk Password",
-            # to_email=user.email,
-            to_email="isaac.enobun@crccreditbureau.net",
-            context=context,
-            type="verify"
-        ):
-            print("Verification code sent successfully.")
-        else:
-            print("Failed to send verification code.")
-
-        verification_code = VerificationCode.objects.create(user=user, code=code)
-        serializer = self.get_serializer(verification_code)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)

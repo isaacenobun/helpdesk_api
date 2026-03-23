@@ -18,14 +18,27 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['0.0.0.0:8080', 'helpdesk-api-92j8.onrender.com', 'localhost', 'ae87-62-173-38-93.ngrok-free.app']
 
-CSRF_TRUSTED_ORIGINS = ['https://helpdesk-api-92j8.onrender.com', 'https://*.helpdesk-api-92j8.onrender.com']
+CSRF_TRUSTED_ORIGINS = [' http://localhost:80', 'https://d4c7c19c4648.ngrok-free.app']
 
 CORS_ALLOWED_ORIGINS = [
     "https://crc-helpdesk.vercel.app",
+]
+
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+    "ngrok-skip-browser-warning",
 ]
 
 # Application definition
@@ -138,9 +151,9 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
-    'DEFAULT_RENDERER_CLASSES': (
-        'rest_framework.renderers.JSONRenderer',
-    ),
+    # 'DEFAULT_RENDERER_CLASSES': (
+    #     'rest_framework.renderers.JSONRenderer',
+    # ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 25,
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend']
