@@ -22,7 +22,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['0.0.0.0:8080', 'helpdesk-api-92j8.onrender.com', 'localhost', 'ae87-62-173-38-93.ngrok-free.app']
 
-CSRF_TRUSTED_ORIGINS = [' http://localhost:80', 'https://d4c7c19c4648.ngrok-free.app']
+CSRF_TRUSTED_ORIGINS = [' http://localhost:80', 'https://ae87-62-173-38-93.ngrok-free.app']
 
 CORS_ALLOWED_ORIGINS = [
     "https://crc-helpdesk.vercel.app",
